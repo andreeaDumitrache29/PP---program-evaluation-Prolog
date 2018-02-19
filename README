@@ -1,0 +1,182 @@
+DUMITRACHE Daniela Andreea
+321CB
+Paradigme de Programare - Tema3
+
+	Pentru implementarea lui ParseInputAux : parsam lista primita solosind parse_aux si evaluam rezultatul parsarii, 
+reprezentat de o lista de prog-uri; daca evaluarea are loc cu succes, se intoarce rezultatul obitnut
+daca se intalneste un assert care esueaza pe parcursul evaluarii se intoarce 'a'.
+
+	Predicatul eval_expr_list:realizeaza evaluarea unei liste de porgrame;
+Primul parametru = lista de programe; al doilea parametru = rezultatul evaluarii, al treilea parametru = lista de variabile
+din program inainte de evaluarea curenta, al patrulea parametru = lista de variabile dupa evaluarea curenta; al cincelea parametru =
+1 daca s-a intalnit un asert fals is 0 altfel.
+1) Evaluarea listei vide nu intoarce un rezultat anume;
+2) evaluarea unei liste cu un singur prog va returna rezultatul intors de evaluarea prog-ului respectiv;
+3) evaluarea unei liste cu cel putin doua elemente (daca lista ar fi avut un singur element s-ar fi intrat pe cazul anterior) consta in
+evaluarea primului element, verificarea rezultatului si evaluarea restului listei prin apelul recursiv al functiei de evaluare pentru lista
+ramasa: daca rezultatul intors este 'a', atunci evaluarea continua, dar se semnaleaza aparitia ei prin setarea ultimului parametru drept 1 si a 
+rezultatului intors drept 'a'; daca nu apare nicio eroare ultimul parametru va fi setat drept 0 si rezultatul intors de etapa curenta de evaluare
+va fi rezultatul intors de apelul recursiv.
+
+Predicatul parse_aux realizeaza parsarea unei liste de tokeni prin apelul functiilor de parsare corespunzatoare fiecarui tip de prog;
+primul parametru = lista de parsat, al doilea parametru = lista de programe care au fost deja parsate, al treilea parametru = lista
+de programe incluzand programul nou parsat, al patrulea parametru = lista ramasa de parsat;
+1) daca se ajunge la o lista care incepe cu ; atunci parsarea se operste, deoarece am ajuns la finalul unei instructiuni
+2) incercam sa parsam un program de tip assign. Aceasta parsare este impartita pe mai multe cazuri:
+	a) am parsat un prog de tip assign, mai avem cel putin doua elemente in lista ramasa in urma parsarii, primul element din
+	lista ramasa este ;, vom adauga noul prog parsat la lista celor deja existente pentru a crea noua lista a programelor parsate.
+	Daca al doilea element din lista ramasa este { sau } atunci am ajuns la finalul corpului unui if sau unui for, deci nu mai are rost
+	sa continuam recursiv parsarea (acesta este singurul caz cand am putea sa dam de acolade in program). 
+	Daca al doilea element din lista ramasa nu este o acolada atunci vom continua parsarea printr-un apel recursiv pe lista ramasa.
+	b) am parsat un prog de tip assign, mai avem un singur element in lista ramasa in urma parsarii, ;. Adaugam noul program parsat la
+	lista programelor parsate si se incheie parsarea listei curente.
+3) parsarea unui program de tip assert: identica cu parsarea programelor de assign, se apeleaza predicatul parse_assert_expr in loc 
+de predicatul parse_assign pentru parsarea programului propriu-zis.
+4) incercam sa parsam un programul de tip if prin predicatul parse_if_expr. Indifernt de lista ramasa, se va adauga programul nou parsat 
+la lista programelor deja existente. Se evalueaza lista ramasa in urma parsarii:
+	a) lista este nevida, dar primul ei element este }, sau },deci am ajuns la finalul sau la inceputul unui nou bloc, asa ca nu mai parsam in continuare.
+	b) lista este nevida si primul element este diferit de { si }, deci vom continua parsarea programelor ce urmeaza.
+	c) lista este vida, asa ca doar adauga noul rezultat si parsarea nu mai poate continua.
+5) parsarea unui program for cu ajutorul predicatului parse_for_expr: identica cu parsarea unui if.
+6) parsarea unui program return cu ajutorul predicatului parse_return_expr: se parseaza programul return, se verfica ca lista ramasa
+sa inceapa cu ; si se adauga noul program in lista programelor existente.
+
+Predicatele parse_alpha, parse_int, parse_char, star, plus si parse_var, parse_val,parse_token au fost prezentate la curs.
+
+	Parserele folosite sunt:
+
+- parse_eq, parse_sm, parse_par;
+
+- Parseaza un program de tip assign : parse_assign
+poate aparea ; la inceput daca au mai fost alte instructiuni inainte;
+se parseaza variabila;
+se parseaza atribuirea (semnul =);
+se parseaza o valoare sau o expresie si se verifica sa se termine in ;.
+
+- parse_mult_expr: parser facut la curs
+parseaza o expresie de tip expresie1 * expresie2 (mult);
+expresiie pot fi o variabila o variabila, o valoare, o alta inmultire.
+obiectul parsat este de tip mult(X,Y) pentru a simbolliza faptul ca cele doua expresii vor trebui sa fie inmultite
+functionare: parsam o variabila sau o valoare(expresie1), parsam semnul de inmultite dintre expresii, parsam recursiv
+a doua valoare pentru a include si alte inmultiri legate de cea curenta
+caz de baza: parsam o variabila sau o valoare
+
+- parse_add_expr: parseaza o expresie de tip expresie1 + expresie2 (add);
+expresiile pot fi o inmultire (care include si cazul variabila/valoare si are prioritate mai mare decat adunarea)
+o alta adunare, sau o scadere, care are aceeasti proritate cu adunarea;
+obiectul parsat este de tip add(X,Y) pentru a simbolliza faptul ca cele doua expresii vor trebui sa fie adunate
+functionare: parsam o inmultire, parsam semnul de adunare dintre expresii, parsam o noua adunare recursiv;
+caz de baza: parsam o scadere (nu am gasit nici inmultiri nici alte adunari).
+
+- parse_sub_expr: parseaza o expresie de tip expresie1 - expresie2 (sub);
+expresiile pot fi o inmultire (care include si cazul variabila/valoare si are prioritate mai mare decat scaderea)
+o alta scadere, sau o adunare, care are aceeasti proritate cu scaderea;
+obiectul parsat este de tip sub(X,Y) pentru a simbolliza faptul ca cele doua expresii vor trebui sa fie scazute
+functionare: parsam o inmultire, parsam semnul de scadere dintre expresii, parsam o noua scadere recursiv;
+caz de baza: parsam o adunare (nu am gasit nici inmultiri nici alte scaderi).
+
+- parse_expr: parseaza o expresie oarecare: o adunare sau o scadere (implicit includ si cazul de inmultire
+ sau simple variabile / valori) verificam ca expresiile parsate sa se termine in ; sau ).
+
+- parse_expr_sm: parseaza o expresie de tip expresie < expresie (smaller);
+fiecare expresie poate fi de tipul: adunare, inmultire, scadere, variabila sau valoare;
+functionare: parsam o expresie , verificam lista ramasa incepe cu < (expresia parsata este prima expresie din smaller) sau 
+cu ) (expresia parsata este a doua din smaller) si  returnam rezultatul parsarii expresiei.
+
+- parse_smaller_expr: parseaza o expresie de tip smaller: expresie1 < expresie2.
+se parseaza expresie1 folosind parse_expr_sm, se parseaza semnul de < dintre cele doua expresii si se parseaza si expresie2
+folosind tot parse_expr_sm.
+
+- parse_expr_eq: parseaza o expresie de tip expresie == expresie (eq);
+functionare: parsam o expresie , verificam lista ramasa incepe cu == (expresia parsata este prima expresie din eq) sau 
+cu ) (expresia parsata este a doua din eq) si  returnam rezultatul parsarii expresiei.
+
+- parse_eq_expr : parseaza o expresie de tip eq: expresie1 == expresie2.
+se parseaza expresie1 folosind parse_expr_eq, se parseaza semnul de ==  dintre cele doua expresii si se parseaza si expresie2
+folosind tot parse_expr_eq.
+
+- parse_return_expr: parseaza un prog de tip return prin parsarea expresiei componente.
+return-ul de inceput poate avea ; in fata daca au fost si alte instructiuni inainte.
+pentru parsarea expresiei se foloseste predicatul parse_expr.
+
+- parse_assert_expr: parseaza un program de tip assert prin parsarea expresiei componente.
+assert-ul de inceput poate avea ; in fata daca au fost si alte instructiuni inainte.
+se parseaza prima paranteza care marcheaza inceputul expresiei de parsat.
+pentru parsarea expresiei se folosesc predicatele parse_eq_expr si parse_smaller_expr, pentru ca X este obligatoriu o expresie
+booleana daca se afla in interiorul unui assert.
+se parseaza paranteza care inchide expresia de parsat.
+
+- parse_if_expr: parseaza un program de tip if prin parsarea expresiilor componente.
+if-ul de inceput poate avea ; in fata daca au fost si alte instructiuni inainte.
+se parseaza prima paranteza care marcheaza inceputul expresiei de parsat.
+pentru parsarea expresiei se folosesc predicatele parse_eq_expr si parse_smaller_expr, pentru ca Cond este obligatoriu o expresie
+booleana.
+se parseaza paranteza care inchide conditia si se preia drept lista urmatoare lista fara then-ul de la inceput, pentru a evita inca o parsare.
+se parseaza acolada de la inceputul then-ului
+se parseaza programele din interiorul ramurii then folosind parse_aux; then va fii deci o lista de programe;
+se parseaza acolada care inchide then-ul, si se preia lista urmatoare fara else-ul de inceput;
+se parseaza acolada de la inceputul else-ului
+se parseaza programele din interiorul ramurii else folosind parse_aux si se parseaza acolada de la finalul else-ului.
+
+- parse_for_expr: parseaza un program de tip for prin parsarea expresiilor componente.
+for-ul de inceput poate avea ; in fata daca au fost si alte instructiuni inainte.
+se parseaza prima paranteza care marcheaza inceputul expresiei de parsat.
+se parseaza primul assign folosind parse_assign_for si se elimina ; din lista ramasa;
+se parseaza conditia, care este o expresie booleana, deci de tip smaller sau eq, folosind parserele parse_eq_expr_for si 
+parse_smaller_expr_for. si se elimina; din lista ramsa;
+se parseaza al doilea assign din for(pasul) folosind parse_assign_for;
+se parseaza paranteza de la finalul for-ului si acolada de la inceputul programului de executat;
+se parseaza programul folosind parse_aux;
+se parseaza ultima acolada;
+
+- parse_assign_for : predicat pentru a parsa un program de tip assign pentru for;
+diferit de parse_assign prin faptul ca un assign din for se poate incheia si printr-o ), 
+daca este al doilea assign, nu doar prin ;.
+
+- parse_expr_eq_for : predicat pentru a parsa un program de tip eq pentru for;
+diferit de parse_expr_eq prin faptul ca un eq din for se poate incheia doar prin ;
+
+- parse_eq_expr_for : parseaza un program eq pentru un for folosind parse_eq_expr_for
+
+- parse_expr_smaller_for: predicat pentru a parsa un program de tip smaller pentru for;
+diferit de parse_sm_expr prin faptul ca un smaller din for se poate incheia doar prin ;.
+
+- parse_smaller_expr_for: parseaza un program de tip smaller pentru for folosind parse_smaller_expr_for;
+
+
+	Pentru evaluarea unui program am folosit predicatul eval, care functioneaza in felul urmator:
+1) add(X, Y) : evalueaza X, evalueaza Y, aduna rezultatele celor doua evaluari. Lista de variabile nu se poate schimba
+deoarece nu pot aparea assign-uri in interiorul expresiilor dintr-un add;
+2)	sub(X,Y) : evalueaza X, evalueaza Y, scade rezultatele celor doua evaluari. Lista de variabile nu se poate schimba
+deoarece nu pot aparea assign-uri in interiorul expresiilor dintr-un sub;
+3)	mult(X,Y) : evalueaza X, evalueaza Y, inmulteste rezultatele celor doua evaluari. Lista de variabile nu se poate schimba
+deoarece nu pot aparea assign-uri in interiorul expresiilor dintr-un mult;
+4) return(X) : evalueaza X si intoarce rezultatul; nu se pot produce schimbari in lista de variabile;
+5)	assign(X, Y) : evalueaza expresia Y; adauga perechea formata din X si rezultatul evaluarii la lista de variabile si da mai
+departe noua lista.
+6)	eq(X,Y) : evalueaza X, evalueaza Y, daca rezultatele celor doua evaluari sunt egale returneaza 1, altfel returneaza 0.
+Listele de variabile nu se pot modifica.
+7) smaller(X, Y) : evalueaza X, evalueaza Y, daca rezultatul primei evaluari este mai mic decat al celei de-a doua atunci returneaza 
+1, altfel returneaza 0. Listele de variabile nu se pot modidica.
+8)	assert(X) : evalueaza X. Daca rezultatul este 1, atunci nu se schimba nimic (returneaza 1). Daca rezultatul este 0 returneaza 'a'. 
+Listele de variabile nu se pot modidica.
+9) if(Cond, Then, Else): evalueaza Cond: daca este adevarata (intoarce 1) atunci evalueaza Then, altfel evalueaza Else. Evaluarea se 
+ realizeaza folosind eval_expr_list, deoarece Then si Else sunt liste de programe. Listele se pot modifica la evaluarea programelor
+din Else sau Then, deci se va mai departe lista rezultata in urma evaluarii ramurii corespunzatoare.
+10) for(Asgn1, Cond, Asgn2, Prog): evalueaza primul assign si conditia: daca este adevarata, atunci evalueaza Prog folosind
+eval_expr_list (este o lista de programe) si apeleaza recursiv functia de evaluare pentru a simula repetarea buclei. Lista de variabile
+se poate modidica la evaluarea lui Prog si a assign-urilor, deci se va da mereu mai departe lista nou calculata. In recursivitate 
+Asgn1 si Asgn2 vor fi aceleasi, deoarece Asgn2 reprezinta "pasul" din for, iar Asgn1 se executa o singura data,la intrarea in for.
+Deci, pentru a simula executia pasului, acesta trebuie sa fie evaluat mereu inainte de a verifica conditia de la iteratia 2 incolo. 
+Daca conditia este falsa se returneaza rezultatul assign-ului.
+11) pentru o valoare se verifica daca este numar si se returneaza direct
+12) pentru o variabila se verifica daca este string si se returneaza rezultatul cautarii ei in lista de variabile.
+
+
+
+
+
+
+
+
+
